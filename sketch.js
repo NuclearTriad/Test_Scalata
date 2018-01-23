@@ -19,7 +19,7 @@ var watchID,
     stabilizzato = false, //inizia con la propriteà non stabilizzata
     backUpstabilizzation = [], //crea la array dei valori per stabilizzare
     stabilizzationTOT = 0,
-    accuracyLimit = 0.2, //valore in metri che deve avere la sommatoria della array precedente per essere considerata accettabile
+    accuracyLimit = 0.4,
     maxStabilizzationArray = 4, //massimo numero di valori che l'array di sopra può tenere (maggiore è più preciso è)
 
     conv=0, //conversione da m in pixel di scalata
@@ -47,7 +47,7 @@ function setup() {
 
 
        mask = createGraphics(720, 1280); //crea il segnaposto per la mascherma sotto (le grandezze qui si ripetono poi sotto)
-
+       imgClone  = createGraphics(720, 1280);
     getLocationUpdate();
 
   }
@@ -64,7 +64,6 @@ function draw() {
         background("white");
 
         mask.rect(0, 1280-conv, 720, 1280); //crea maschera da rettangolo
-        ( imgClone = imgLink[id].get() ).mask( mask.get() ); //imposta la maschera appena creata al immagine imgClone
 
         push()
           imageMode(CENTER)
@@ -89,11 +88,11 @@ function draw() {
 
 function stabilizzation() {
   if (stabilizzato==false) { //Stabilizzazione
-    if (isNaN(metriPrec)==false) {backUpstabilizzation.push(metriPrec);} //se la distanza è un valore numerico mettila nell Array della stabilizzazione
+    if (isNaN(accuracy)==false) {backUpstabilizzation.push(accuracy);} //se la distanza è un valore numerico mettila nell Array della stabilizzazione
     if (backUpstabilizzation.length>maxStabilizzationArray) {backUpstabilizzation.shift()}
-    if ((backUpstabilizzation.length==4)&&(stabilizzationTOT<accuracyLimit)) {stabilizzato=true; console.log("stabilizzato")}; //se la sommatoria delle
+    if ((backUpstabilizzation.length==4)&&(stabilizzationTOT<accuracyLimit)) {stabilizzato=true; console.log("stabilizzato");}; //se la sommatoria delle
 
-    stabilizzationTOT = backUpstabilizzation.sum();
+    stabilizzationTOT = (backUpstabilizzation.sum()/backUpstabilizzation.length)-accuracy;
   }
 }
 
@@ -115,12 +114,17 @@ function stabilizzation() {
 
     stabilizzation() //Stabilizzazione
 
-   if ((stabilizzato==true)&&(metriTOT<myData.landmarks_en[id].height)&&(metriPrec>accuracyLimit*2)) {
+   if ((stabilizzato==true)&&(metriTOT<myData.landmarks_en[id].height)&&(metriPrec>accuracyLimit)) {
 
       if (isNaN(metriPrec)==false) {backUpPositionDist.push(metriPrec);} //se gli aggiornamenti hanno raggiunto la quota di 15. inizia ad aggiungere le distanze percorse alla Array di tutte le distanze
       metriTOT = backUpPositionDist.sum(); //fai la sommatoria della Array di tutte le distanze percorse per sapere la distanza totale percorsa
 
       conv = map(metriTOT, 0, myData.landmarks_en[id].height, 0, myData.landmarks_en[id].hPx); //converte la distanza in m in pixel di scalata
+      mask.clear();
+
+      ( imgClone = imgLink[id].get() ).mask( mask.get() ); //imposta la maschera appena creata al immagine imgClone
+
+
    }
   }
 
@@ -193,8 +197,8 @@ function stabilizzation() {
     }
 
     function mouseClicked() {
-      if (mouseX>(0.85*width)) {edificoDx()}
-      if (mouseX<(0.15*width)) {edificoSx()}
+      if (mouseX>(0.85*width)) {edificoDx(), backUpPositionDist=0;}
+      if (mouseX<(0.15*width)) {edificoSx(), backUpPositionDist=0;}
     }
 
 function edificoDx() {
